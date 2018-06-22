@@ -21,8 +21,7 @@ default:
 
 # [alert] cant't remove dot-prefix file
 clean:
-	rm -f *.o *.ko *.mod.o *.order *.symvers *.mod.c *.mk *.cmd
-	rm -rf .tmp_versions
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
 
 endif
 
