@@ -7,3 +7,5 @@
 *.mk
 *.cmd
 **.tmp_versions
+
+tags
