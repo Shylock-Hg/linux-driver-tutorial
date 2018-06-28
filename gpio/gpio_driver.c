@@ -132,9 +132,15 @@ static irqreturn_t rasp_gpio_irq_handler(int irq, void * args){
 static int rasp_gpio_open(struct inode * inode, struct file * filp){
 	unsigned int gpio = iminor(inode);
 	int err = 0;
-	struct rasp_gpio_dev * p_rasp_gpio_dev = container_of(inode->i_cdev,
+	/*
+	struct rasp_gpio_dev * dev = container_of(inode->i_cdev,
 			struct rasp_gpio_dev,
 			cdev);
+	*/
+	struct rasp_gpio_dev * dev = kmalloc(sizeof(struct rasp_gpio_dev), GFP_KERNEL);
+	dev->irq_counter = 0;
+	dev->irq_is_enabled = false;
+	dev->
 
 	printk(KERN_NOTICE "Open rasp gpio [%d]!\n", gpio);
 
@@ -166,7 +172,7 @@ static int rasp_gpio_open(struct inode * inode, struct file * filp){
 		return err;
 	}
 
-	filp->private_data = p_rasp_gpio_dev;
+	filp->private_data = dev;
 	
 	return 0;
 }
@@ -411,6 +417,7 @@ static __init int rasp_gpio_init(void){
 	for(i=0; i<MAX_GPIO_NUM; i++){
 		struct device * dummy;
 		if(! _gpio_is_in_blacklist(i)){  //< valid gpio pin
+			/*
 			p_rasp_gpio_dev[index] = kmalloc(sizeof(struct rasp_gpio_dev),
 					GFP_KERNEL);
 			if(NULL == p_rasp_gpio_dev[index]){
@@ -434,8 +441,10 @@ static __init int rasp_gpio_init(void){
 				unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
 				return -ENOMEM;
 			}
+			*/
 
 			//< request gpio
+			/*
 			err = gpio_request_one(i, GPIOF_OUT_INIT_LOW, NULL);
 			if(err){
 				//< deinit gpio and destroy device
@@ -457,8 +466,10 @@ static __init int rasp_gpio_init(void){
 				printk(KERN_ALERT "Request gpio [%d] failed!\n", i);
 				return err;
 			}
+			*/
 
 			//< initailize device 
+			/*
 			p_rasp_gpio_dev[index]->irq_is_enabled = false;
 			p_rasp_gpio_dev[index]->irq_counter = 0;
 			p_rasp_gpio_dev[index]->cdev.owner = THIS_MODULE;
@@ -492,6 +503,7 @@ static __init int rasp_gpio_init(void){
 				printk(KERN_ALERT "Register gpio [%d] device failed!\n", i);
 				return err;
 			}
+			*/
 
 			//< create device in VFS
 			dummy = device_create(rasp_gpio_class,
@@ -506,22 +518,25 @@ static __init int rasp_gpio_init(void){
 				//< deinit gpio and destroy device
 				for(j=0; j<i; j++){
 					if(! _gpio_is_in_blacklist(j)){
-						gpio_direction_output(j,0);
-						gpio_free(j);
+						//gpio_direction_output(j,0);
+						//gpio_free(j);
 						device_destroy(rasp_gpio_class,
 								MKDEV(MAJOR(first), MINOR(first+j)));
 					}
 				}
-				gpio_free(i);
+				//gpio_free(i);
 				//< free dev 
+				/*
 				for(j=0; j<index; j++){
 					kfree(p_rasp_gpio_dev[j]);
 				}
-				kfree(p_rasp_gpio_dev[index]);
+				*/
+				//kfree(p_rasp_gpio_dev[index]);
 				class_destroy(rasp_gpio_class);
 				unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
 				return PTR_ERR(dummy);
 			}
+			cdev_add();
 		}  //!< !_gpio_is_blacklist
 		index++;
 	}  //!< for 
@@ -543,17 +558,19 @@ static __exit void rasp_gpio_exit(void){
 	//< deinit gpio and destroy device
 	for(i=0; i<MAX_GPIO_NUM; i++){
 		if(! _gpio_is_in_blacklist(i)){
-			gpio_direction_output(i,0);
-			gpio_free(i);
+			//gpio_direction_output(i,0);
+			//gpio_free(i);
 			device_destroy(rasp_gpio_class,
 					MKDEV(MAJOR(first), MINOR(first+i)));
 		}
 	}
 
 	//< free dev 
+	/*
 	for(i=0; i<sizeof(p_rasp_gpio_dev)/sizeof(p_rasp_gpio_dev[0]); i++){
 		kfree(p_rasp_gpio_dev[i]);
 	}
+	*/
 
 	//< destroy gpio module class
 	class_destroy(rasp_gpio_class);
