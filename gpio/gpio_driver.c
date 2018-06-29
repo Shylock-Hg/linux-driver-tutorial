@@ -132,15 +132,9 @@ static irqreturn_t rasp_gpio_irq_handler(int irq, void * args){
 static int rasp_gpio_open(struct inode * inode, struct file * filp){
 	unsigned int gpio = iminor(inode);
 	int err = 0;
-	/*
 	struct rasp_gpio_dev * dev = container_of(inode->i_cdev,
 			struct rasp_gpio_dev,
 			cdev);
-	*/
-	struct rasp_gpio_dev * dev = kmalloc(sizeof(struct rasp_gpio_dev), GFP_KERNEL);
-	dev->irq_counter = 0;
-	dev->irq_is_enabled = false;
-	dev->
 
 	printk(KERN_NOTICE "Open rasp gpio [%d]!\n", gpio);
 
@@ -149,13 +143,11 @@ static int rasp_gpio_open(struct inode * inode, struct file * filp){
 		return -ENODEV;
 	}
 
-	/*  //< request gpio when module initialize
-	err = gpio_request(gpio, GPIOF_OUT_INIT_LOW, NULL);
+	err = gpio_request_one(gpio, GPIOF_OUT_INIT_LOW, NULL);
 	if(err){
-		printk(KERN_ALERT, "Request gpio [%d] failed!\n", gpio);
+		printk(KERN_ALERT "Request gpio [%d] failed!\n", gpio);
 		return err;
 	}
-	*/
 
 	//< gpio direction
 	if(FMODE_READ & filp->f_mode){
@@ -166,7 +158,6 @@ static int rasp_gpio_open(struct inode * inode, struct file * filp){
 		printk(KERN_ALERT "Undefined w/r access of rasp gpio [%d]!\n", gpio);
 		return -EINVAL;
 	}
-
 	if(err){
 		printk(KERN_ALERT "Set gpio [%d] direction failed!\n", gpio);
 		return err;
@@ -184,17 +175,24 @@ static int rasp_gpio_open(struct inode * inode, struct file * filp){
  * */
 static int rasp_gpio_release(struct inode * inode, struct file * filp){
 	unsigned int gpio = iminor(inode);
-	/*
 	int irq = gpio_to_irq(gpio);
 	struct rasp_gpio_dev * dev = container_of(inode->i_cdev,
 			struct rasp_gpio_dev,
 			cdev);
-	*/
 
 	printk(KERN_NOTICE "Close gpio [%d]!\n", gpio);
 
-	//< release irq , now release by ioctl
-	/*
+	filp->private_data = NULL;
+
+	//< check gpio is valid
+	if(! gpio_is_valid(gpio)){
+		return -ENODEV;
+	}
+
+	//< reset gpio output
+	gpio_direction_output(gpio, 0);
+
+	//< disable gpio interrupt
 	if(dev->irq_is_enabled){
 		spin_lock(&dev->lock);
 		dev->irq_counter = 0;
@@ -204,9 +202,9 @@ static int rasp_gpio_release(struct inode * inode, struct file * filp){
 		dev->irq_is_enabled = false;
 		spin_unlock(&dev->lock);
 	}
-	*/
 
-	//gpio_free(gpio); //free gpio when module exit
+	//< free gpio
+	gpio_free(gpio); //free gpio when module exit
 
 	return 0;
 }
@@ -417,31 +415,13 @@ static __init int rasp_gpio_init(void){
 	for(i=0; i<MAX_GPIO_NUM; i++){
 		struct device * dummy;
 		if(! _gpio_is_in_blacklist(i)){  //< valid gpio pin
-			/*
 			p_rasp_gpio_dev[index] = kmalloc(sizeof(struct rasp_gpio_dev),
 					GFP_KERNEL);
 			if(NULL == p_rasp_gpio_dev[index]){
 				printk(KERN_ALERT "Alloc rasp gpio [%d] device failed!\n", i);
-				//< deinit gpio and destroy device
-				for(j=0; j<i; j++){
-					if(! _gpio_is_in_blacklist(j)){
-						gpio_direction_output(j,0);
-						gpio_free(j);
-						device_destroy(rasp_gpio_class,
-								MKDEV(MAJOR(first), MINOR(first+j)));
-					}
-				}
-				//< free dev 
-				for(j=0; j<index; j++){
-					kfree(p_rasp_gpio_dev[j]);
-				}
-				//< destroy class
-				class_destroy(rasp_gpio_class);
-				//< unregister character device
-				unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
-				return -ENOMEM;
+				err = -ENOMEM;
+				goto rollback;
 			}
-			*/
 
 			//< request gpio
 			/*
@@ -469,7 +449,6 @@ static __init int rasp_gpio_init(void){
 			*/
 
 			//< initailize device 
-			/*
 			p_rasp_gpio_dev[index]->irq_is_enabled = false;
 			p_rasp_gpio_dev[index]->irq_counter = 0;
 			p_rasp_gpio_dev[index]->cdev.owner = THIS_MODULE;
@@ -483,27 +462,10 @@ static __init int rasp_gpio_init(void){
 					first+i,
 					1);
 			if(err){
-				//< deinit gpio and destroy device
-				for(j=0; j<i; j++){
-					if(! _gpio_is_in_blacklist(j)){
-						gpio_direction_output(j,0);
-						gpio_free(j);
-						device_destroy(rasp_gpio_class,
-								MKDEV(MAJOR(first), MINOR(first+j)));
-					}
-				}
-				gpio_free(i);
-				//< free dev 
-				for(j=0; j<index; j++){
-					kfree(p_rasp_gpio_dev[j]);
-				}
-				kfree(p_rasp_gpio_dev[index]);
-				class_destroy(rasp_gpio_class);
-				unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
 				printk(KERN_ALERT "Register gpio [%d] device failed!\n", i);
-				return err;
+				kfree(p_rasp_gpio_dev[index]);
+				goto rollback;
 			}
-			*/
 
 			//< create device in VFS
 			dummy = device_create(rasp_gpio_class,
@@ -515,28 +477,12 @@ static __init int rasp_gpio_init(void){
 					);
 			if(IS_ERR(dummy)){
 				printk(KERN_ALERT "Rasp gpio [%d] device create failed!\n", i);
-				//< deinit gpio and destroy device
-				for(j=0; j<i; j++){
-					if(! _gpio_is_in_blacklist(j)){
-						//gpio_direction_output(j,0);
-						//gpio_free(j);
-						device_destroy(rasp_gpio_class,
-								MKDEV(MAJOR(first), MINOR(first+j)));
-					}
-				}
-				//gpio_free(i);
-				//< free dev 
-				/*
-				for(j=0; j<index; j++){
-					kfree(p_rasp_gpio_dev[j]);
-				}
-				*/
-				//kfree(p_rasp_gpio_dev[index]);
-				class_destroy(rasp_gpio_class);
-				unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
-				return PTR_ERR(dummy);
+				device_destroy(rasp_gpio_class, 
+						MKDEV(MAJOR(first), MINOR(first+i)));
+				kfree(p_rasp_gpio_dev[index]);
+				err = PTR_ERR(dummy);
+				goto rollback;
 			}
-			cdev_add();
 		}  //!< !_gpio_is_blacklist
 		index++;
 	}  //!< for 
@@ -547,6 +493,24 @@ static __init int rasp_gpio_init(void){
 		(uint64_t)(timeval.tv_usec/1000);
 
 	return 0;
+
+rollback:
+	//< deinit gpio and destroy device
+	for(j=0; j<i; j++){
+		if(! _gpio_is_in_blacklist(j)){
+			device_destroy(rasp_gpio_class,
+					MKDEV(MAJOR(first), MINOR(first+j)));
+		}
+	}
+	//< free dev 
+	for(j=0; j<index; j++){
+		kfree(p_rasp_gpio_dev[j]);
+	}
+	//< destroy class
+	class_destroy(rasp_gpio_class);
+	//< unregister character device
+	unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
+	return err;
 }  //!< function
 module_init(rasp_gpio_init);
 
