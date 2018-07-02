@@ -494,6 +494,9 @@ static __init int rasp_gpio_init(void){
 	epochMilli = (uint64_t)(timeval.tv_sec*1000) +
 		(uint64_t)(timeval.tv_usec/1000);
 
+	//< prompt information
+	printk(KERN_NOTICE "Initialize rasp gpio modules!\n");
+
 	return 0;
 
 rollback:
