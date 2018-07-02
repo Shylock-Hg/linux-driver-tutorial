@@ -1,10 +1,9 @@
-# if defined `KERNELRELEASE` , we've been invoked from kernel build.
-# In this case , the module will built into kernel and load when kernel startup.
-#
 # module name
 MODULE=test
 
-# append the object files of module
+# If defined `KERNELRELEASE` , we've been invoked from kernel build.
+# In this case , the module will built into kernel and load when kernel startup.
+# Just append the object files of module
 ifneq ($(KERNELRELEASE),)
 	obj-m := $(MODULE).o
 	$(MODULE)-objs := hello.o 
@@ -19,7 +18,6 @@ else
 default:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
-# [alert] cant't remove dot-prefix file
 clean:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
 
