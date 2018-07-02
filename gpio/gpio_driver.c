@@ -64,7 +64,9 @@ static struct file_operations rasp_gpio_fops = {
 	.release        = rasp_gpio_release,
 	.read           = rasp_gpio_read,
 	.write          = rasp_gpio_write,
-	.unlocked_ioctl = rasp_unlocked_ioctl
+	.llseek         = no_llseek,
+	.unlocked_ioctl = rasp_unlocked_ioctl,
+	.compat_ioctl   = NULL
 };
 
 /******************** interrupt device interface ********************/
