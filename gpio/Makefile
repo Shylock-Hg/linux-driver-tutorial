@@ -13,14 +13,16 @@ ifneq ($(KERNELRELEASE),)
 # In this case , the module will built to seperated module that should load 
 # independently.
 else
-	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+	#KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+	KERNELDIR ?= /home/shylock/Workspace/raspberrypi/linux
 	PWD ?= $(shell pwd)
 
 default:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 
 clean:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) clean ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 
 endif
+
 
