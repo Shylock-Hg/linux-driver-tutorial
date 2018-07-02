@@ -532,11 +532,9 @@ static __exit void rasp_gpio_exit(void){
 	}
 
 	//< free dev 
-	/*
 	for(i=0; i<sizeof(p_rasp_gpio_dev)/sizeof(p_rasp_gpio_dev[0]); i++){
 		kfree(p_rasp_gpio_dev[i]);
 	}
-	*/
 
 	//< destroy gpio module class
 	class_destroy(rasp_gpio_class);
