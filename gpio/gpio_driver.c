@@ -24,8 +24,8 @@
 #include <linux/time.h>
 
 /******************** gpio device config********************/
-#define MAX_GPIO_PIN_NUM  21
-#define MAX_GPIO_NUM      32
+#define MAX_GPIO_PIN_NUM  26
+#define MAX_GPIO_NUM      28
 #define MAX_BUF_SIZE      512
 
 #define STR_DEVICE_NAME     "rasp_gpio_driver"
@@ -377,7 +377,7 @@ static long rasp_unlocked_ioctl(struct file * filp, unsigned int cmd, unsigned l
  * */
 static bool _gpio_is_in_blacklist(int gpio){
 	static int _gpio_blacklist[] = {
-		0,1,5,6,12,13,16,19,20,21,26
+		0,1
 	};
 
 	int i;
