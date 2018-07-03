@@ -225,6 +225,7 @@ static ssize_t rasp_gpio_read(struct file * filp,
 
 	unsigned int gpio = iminor(file_inode(filp));
 	int value = gpio_get_value(gpio);
+	printk(KERN_NOTICE "Read [%d] from gpio [%d]!\n", value, gpio);
 	if(! gpio_is_valid(gpio)){
 		printk(KERN_ALERT "Invalid gpio [%d]!\n", gpio);
 		return 0;
@@ -269,6 +270,7 @@ static ssize_t rasp_gpio_write(struct file * filp,
 		printk(KERN_ALERT "Write gpio [%d] copy from user failed!\n", gpio);
 		return 0;
 	}
+	printk(KERN_NOTICE "Write [%c] to gpio [%d]!\n", value, gpio);
 	gpio_set_value(gpio, value-'0');
 
 	return 1;
