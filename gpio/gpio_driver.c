@@ -459,7 +459,7 @@ static __init int rasp_gpio_init(void){
 
 			spin_lock_init(&p_rasp_gpio_dev[index]->lock);
 
-			//< register file_operations
+			//< initialize and register chrdev
 			cdev_init(&p_rasp_gpio_dev[index]->cdev, &rasp_gpio_fops);
 
 			err = cdev_add(&p_rasp_gpio_dev[index]->cdev,
