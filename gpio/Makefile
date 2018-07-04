@@ -5,7 +5,7 @@ PWD ?= $(shell pwd)
 
 ifeq ($(TARGET), host)
 
-include $(PWD)/host.make
+include $(PWD)/host.mk
 
 endif
 
@@ -13,7 +13,7 @@ endif
 
 ifeq ($(TARGET), cross)
 
-include $(PWD)/cross.make
+include $(PWD)/cross.mk
 
 endif
 
