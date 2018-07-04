@@ -168,6 +168,12 @@ static int rasp_gpio_open(struct inode * inode, struct file * filp){
 	filp->private_data = dev;
 	
 	return 0;
+
+gpio_free:
+
+	gpio_free(gpio);
+	return err;
+
 }
 
 /*! \brief release the gpio file
