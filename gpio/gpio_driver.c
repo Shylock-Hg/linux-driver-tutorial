@@ -158,11 +158,14 @@ static int rasp_gpio_open(struct inode * inode, struct file * filp){
 		err = gpio_direction_output(gpio, 0);
 	}else{
 		printk(KERN_ALERT "Undefined w/r access of rasp gpio [%d]!\n", gpio);
-		return -EINVAL;
+		err = -EINVAL;
+		goto gpio_free;
+		//return -EINVAL;
 	}
 	if(err){
 		printk(KERN_ALERT "Set gpio [%d] direction failed!\n", gpio);
-		return err;
+		goto gpio_free;
+		//return err;
 	}
 
 	filp->private_data = dev;
