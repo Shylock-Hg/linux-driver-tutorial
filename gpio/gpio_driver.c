@@ -367,12 +367,6 @@ static long rasp_unlocked_ioctl(struct file * filp, unsigned int cmd, unsigned l
 			}
 		}
 
-		/*
-		else{
-			printk(KERN_ALERT, "Invalid I_SETINT argument [%d]!\n", enable);
-			return -EINVAL;
-		}
-		*/
 		break;
 	default:
 		printk(KERN_ALERT "Invalid ioctl request [%d]!\n", cmd);
@@ -428,6 +422,7 @@ static __init int rasp_gpio_init(void){
 	for(i=0; i<MAX_GPIO_NUM; i++){
 		struct device * dummy;
 		if(! _gpio_is_in_blacklist(i)){  //< valid gpio pin
+			//< create and initialize rasp gpio device
 			p_rasp_gpio_dev[index] = kmalloc(sizeof(struct rasp_gpio_dev),
 					GFP_KERNEL);
 			if(NULL == p_rasp_gpio_dev[index]){
@@ -436,32 +431,6 @@ static __init int rasp_gpio_init(void){
 				goto rollback;
 			}
 
-			//< request gpio
-			/*
-			err = gpio_request_one(i, GPIOF_OUT_INIT_LOW, NULL);
-			if(err){
-				//< deinit gpio and destroy device
-				for(j=0; j<i; j++){
-					if(! _gpio_is_in_blacklist(j)){
-						gpio_direction_output(j,0);
-						gpio_free(j);
-						device_destroy(rasp_gpio_class,
-								MKDEV(MAJOR(first), MINOR(first+j)));
-					}
-				}
-				//< free dev 
-				for(j=0; j<index; j++){
-					kfree(p_rasp_gpio_dev[j]);
-				}
-				kfree(p_rasp_gpio_dev[index]);
-				class_destroy(rasp_gpio_class);
-				unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
-				printk(KERN_ALERT "Request gpio [%d] failed!\n", i);
-				return err;
-			}
-			*/
-
-			//< initailize device 
 			p_rasp_gpio_dev[index]->irq_is_enabled = false;
 			p_rasp_gpio_dev[index]->irq_counter = 0;
 			p_rasp_gpio_dev[index]->cdev.owner = THIS_MODULE;
@@ -492,6 +461,7 @@ static __init int rasp_gpio_init(void){
 				printk(KERN_ALERT "Rasp gpio [%d] device create failed!\n", i);
 				device_destroy(rasp_gpio_class, 
 						MKDEV(MAJOR(first), MINOR(first+i)));
+				cdev_del(&p_rasp_gpio_dev[index]->cdev);
 				kfree(p_rasp_gpio_dev[index]);
 				err = PTR_ERR(dummy);
 				goto rollback;
@@ -518,12 +488,22 @@ rollback:
 					MKDEV(MAJOR(first), MINOR(first+j)));
 		}
 	}
-	//< free dev 
+
+	//< delete chrdev
+	for(j=0; j<i; j++){
+		if(! _gpio_is_in_blacklist(j)){
+			cdev_del(&p_rasp_gpio_dev[j]->cdev);
+		}
+	}
+
+	//< free rasp gpio device
 	for(j=0; j<index; j++){
 		kfree(p_rasp_gpio_dev[j]);
 	}
+
 	//< destroy class
 	class_destroy(rasp_gpio_class);
+
 	//< unregister character device
 	unregister_chrdev_region(first, MAX_GPIO_PIN_NUM);
 	return err;
@@ -538,10 +518,15 @@ static __exit void rasp_gpio_exit(void){
 	//< deinit gpio and destroy device
 	for(i=0; i<MAX_GPIO_NUM; i++){
 		if(! _gpio_is_in_blacklist(i)){
-			//gpio_direction_output(i,0);
-			//gpio_free(i);
 			device_destroy(rasp_gpio_class,
 					MKDEV(MAJOR(first), MINOR(first+i)));
+		}
+	}
+
+	//< delete chrdev
+	for(i=0; i<MAX_GPIO_NUM; i++){
+		if(! _gpio_is_in_blacklist(i)){
+			cdev_del(&p_rasp_gpio_dev[i]->cdev);
 		}
 	}
 
@@ -558,7 +543,6 @@ static __exit void rasp_gpio_exit(void){
 
 	printk(KERN_NOTICE "Exit rasp gpio module!\n");
 
-	//return ;
 }
 module_exit(rasp_gpio_exit);
 
@@ -566,4 +550,5 @@ module_exit(rasp_gpio_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Shylock Hg <tcath2s@gmail.com>");
 MODULE_DESCRIPTION("Raspberry pi 3 B+ gpio simple driver file abstraction.");
+/*** EOF ***/
 
